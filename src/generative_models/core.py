@@ -6,9 +6,9 @@ class GenerativeModel:
     def __init__(self) -> None:
         pass
 
-    def sample(self) -> np.ndarray:
+    def sample(self, n_samples: int) -> np.ndarray:
         """
-        Sample data.
+        Sample n_samples data points.
         """
 
         raise NotImplementedError
@@ -25,5 +25,4 @@ class Trainer:
         """
 
         raise NotImplementedError
-    
     
