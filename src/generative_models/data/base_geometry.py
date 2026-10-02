@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 from data.utils import plot2D, plot3D
 
@@ -9,14 +8,22 @@ class BaseGeometry(Dataset):
     Base class for geometric shapes.
     """
 
-    def __init__(self, size: int=1000, sigma: float=0.05) -> None:
-        self.size = size
-        self.sigma = sigma
-        self.X = self.reset()
+    def __init__(self, *args, **kwargs) -> None:
+        self.X = None
 
-    def reset(self) -> np.ndarray:
+    def sample(self, size: int, sigma: float) -> None:
         """
-        Generate data.
+        Description
+        ----------------------------
+        Sample n data points with an additional Gaussian noise with variance sigma**2.
+
+        Parameters
+        ----------------------------
+        n     : Int, number of data points to sample.
+        sigma : Float > 0, standard deviation of the Gaussian noise.
+
+        Returns
+        ----------------------------
         """
         
         raise NotImplementedError
@@ -29,7 +36,7 @@ class BaseGeometry(Dataset):
         raise NotImplementedError
 
     def __len__(self) -> int:
-        return self.size
+        return self.X.shape[0]
 
     def __getitem__(self, index: int) -> np.ndarray:
         return self.X[index]
@@ -40,20 +47,11 @@ class BaseGeometry2D(BaseGeometry):
     Base class for 2D shapes.
     """
 
-    def __init__(self, size = 1000, sigma = 0.05) -> None:
-        super().__init__(size, sigma)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
     def plot(self, fig_size: tuple[int, int]=(6, 6)) -> None:
+        if self.X is None:
+            raise ValueError("X must not be None. Populate it using sample() method.")
+        
         plot2D(self.X, fig_size)
-
-
-class BaseGeometry3D(BaseGeometry):
-    """
-    Base class for 2D shapes.
-    """
-
-    def __init__(self, size = 1000, sigma = 0.05) -> None:
-        super().__init__(size, sigma)
-
-    def plot(self, fig_size: tuple[int, int]=(6, 6)) -> None:
-        plot3D(self.X, fig_size)

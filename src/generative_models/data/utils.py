@@ -6,6 +6,8 @@ def plot2D(X, fig_size: tuple[int, int]=(6, 6)) -> None:
     ax.scatter(X[:, 0], X[:, 1], s=1)
     ax.grid()
     ax.set_facecolor("lightgrey")
+    ax.set_aspect("equal")
+    
 
 def plot3D(X, fig_size: tuple[int, int]=(6, 6)) -> None:
     fig = plt.figure(figsize=fig_size)
@@ -14,3 +16,4 @@ def plot3D(X, fig_size: tuple[int, int]=(6, 6)) -> None:
     ax.set_aspect('equal')
     ax.grid()
     ax.set_facecolor("lightgrey")
+    ax.set_aspect("equal")

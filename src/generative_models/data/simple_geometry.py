@@ -1,85 +1,118 @@
 import numpy as np
 from scipy.stats import multivariate_normal
-from torch.utils.data import Dataset
-from data.base_geometry import BaseGeometry2D, BaseGeometry3D
-from data.utils import plot2D, plot3D
+from data.base_geometry import BaseGeometry2D
+from data.transformations import BaseAffineTransformation, ScaledTranslation, Rotation
+from typing import Unpack
+
+
+class Superposition2D(BaseGeometry2D):
+
+    def __init__(self, modules: list[tuple[BaseGeometry2D, Unpack[tuple[BaseAffineTransformation, ...]]]]) -> None:
+        """
+        modules : List of tuples. Each tuple contains a shape in the first index followed by a series of affine transformations.
+                  A tuple can have only a shape.
+        """
+
+        self.modules = modules
+        self.n_shapes = len(modules)
+
+    def sample(self, size: int, sigma: int) -> None:
+        self.X = np.empty((size, 2), dtype=np.float32)
+        quotient, remainder = divmod(size, self.n_shapes)
+        for i, module in enumerate(self.modules):
+            shape = module[0]
+            shape_size = quotient if i < self.n_shapes-1 else quotient + remainder
+            shape.sample(shape_size, sigma)
+            for transformation in module[1:]:
+                transformation.apply(shape)
+
+            self.X[i*quotient : i*quotient + shape_size, :] = shape.X
+
+
+class Segment(BaseGeometry2D):
+    """
+    Class describing segment [0, 1].
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def sample(self, size: int, sigma: float) -> None:
+        self.X = np.zeros((size, 2), dtype=np.float32)
+        self.X[:, 0] = np.random.uniform(0, 1, size)
+        normal = multivariate_normal([0, 0], np.eye(2))
+        e = normal.rvs(size)
+        self.X += sigma*e
+
+
+class Arc(BaseGeometry2D):
+    """
+    Class describing an arc.
+    """
+
+    def __init__(self, theta: float) -> None:
+        super().__init__()
+        self.theta = theta
+
+    def sample(self, size: int, sigma: float) -> None:
+        theta_samples = np.random.uniform(0, self.theta, size)
+        normal = multivariate_normal([0, 0], np.eye(2))
+        e = normal.rvs(size)
+        x = np.cos(theta_samples) + sigma*e[:, 0]
+        y = np.sin(theta_samples) + sigma*e[:, 1]
+        self.X = np.vstack((x, y), dtype=np.float32).T
 
 
 class Circle(BaseGeometry2D):
 
-    def __init__(self, size: int=1000, sigma: float=0.05) -> None:
-        super().__init__(size=size, sigma=sigma)
+    def __init__(self) -> None:
+        super().__init__()
+        self.shape = Arc(theta=2*np.pi)
 
-    def reset(self) -> np.ndarray:
-        normal = multivariate_normal([0, 0], np.eye(2))
-        e = normal.rvs(self.size)
-        theta = np.random.uniform(0, 2*np.pi, self.size)
-        x = np.cos(theta) + self.sigma*e[:, 0]
-        y = np.sin(theta) + self.sigma*e[:, 1]
-        return np.vstack((x, y), dtype=np.float32).T
+    def sample(self, size: int, sigma: float) -> None:
+        self.shape.sample(size, sigma)
+        self.X = self.shape.X
 
 
 class Square(BaseGeometry2D):
 
-    def __init__(self, size = 1000, sigma = 0.05) -> None:
-        super().__init__(size, sigma)
+    def __init__(self) -> None:
+        super().__init__()
+        self.shape = Superposition2D([
+            (Segment(), ScaledTranslation(alpha=1, beta=[-1/2, -1/2])), 
+            (Segment(), ScaledTranslation(alpha=1, beta=[-1/2, 1/2])), 
+            (Segment(), Rotation(np.pi/2), ScaledTranslation(alpha=1, beta=[-1/2, -1/2])), 
+            (Segment(), Rotation(np.pi/2), ScaledTranslation(alpha=1, beta=[1/2, -1/2])),
+        ])
 
-    def reset(self) -> np.ndarray:
-        normal = multivariate_normal([0, 0], np.eye(2))
-        e = normal.rvs(self.size)
-        values = np.random.uniform(-1, 1, self.size)
-        X = np.empty((self.size, 2))
-        X[:self.size//4, 0] = -1
-        X[:self.size//4, 1] = values[:self.size//4]
-        X[self.size//4:self.size//2, 0] = 1
-        X[self.size//4:self.size//2, 1] = values[self.size//4:self.size//2]
-        X[self.size//2:3*self.size//4, 0] = values[self.size//2:3*self.size//4]
-        X[self.size//2:3*self.size//4, 1] = -1
-        X[3*self.size//4:, 0] = values[3*self.size//4:]
-        X[3*self.size//4:, 1] = 1
-        return (X + self.sigma*e).astype(np.float32)
+    def sample(self, size: int, sigma: float) -> None:
+        self.shape.sample(size, sigma)
+        self.X = self.shape.X
 
 
-class Sphere(BaseGeometry3D):
+# class Triangle(BaseGeometry2D):
 
-    def __init__(self, size: int=1000, sigma: float=0.05) -> None:
-        super().__init__(size=size, sigma=sigma)
+#     def __init__(self) -> None:
+#         self.shape = Superposition2D([
+#             (Segment(), ScaledTranslation(alpha=1, beta=[-1/2, -1/3])),
+#             (Segment(), Rotation(theta=np.pi/3), ScaledTranslation(alpha=1, beta=[-1/2, -1/3])), 
+#             (Segment(), Rotation(theta=2*np.pi/3), ScaledTranslation(alpha=1, beta=[1/2, -1/3]))
+#         ])
 
-    def reset(self) -> np.ndarray:
-        normal = multivariate_normal([0, 0, 0], np.eye(3))
-        e = normal.rvs(self.size)
-        theta = np.random.uniform(0, np.pi, self.size)
-        phi = np.random.uniform(0, 2*np.pi, self.size)
-        x = np.cos(phi)*np.sin(theta) + self.sigma*e[:, 0]
-        y = np.sin(phi)*np.sin(theta) + self.sigma*e[:, 1]
-        z = np.cos(theta) + self.sigma*e[:, 2]
-        return np.vstack((x, y, z), dtype=np.float32).T
+#     def sample(self, size: int, sigma: float) -> None:
+#         self.shape.sample(size, sigma)
+#         self.X = self.shape.X
 
 
-class Superposition2D(Dataset):
+class Triangle(BaseGeometry2D):
 
-    def __init__(self, shapes: list[BaseGeometry2D]) -> None:
-        self.shapes = shapes
-        self.X = np.vstack(tuple(shape.X for shape in shapes))
-        self.size = 0
-        for shape in shapes:
-            self.size += shape.size
+    def __init__(self) -> None:
+        self.shape = Superposition2D([
+            (Segment(), ScaledTranslation(alpha=1, beta=[-1/2, -np.sqrt(3)/6])),
+            (Segment(), Rotation(theta=np.pi/3), ScaledTranslation(alpha=1, beta=[-1/2, -np.sqrt(3)/6])), 
+            (Segment(), Rotation(theta=2*np.pi/3), ScaledTranslation(alpha=1, beta=[1/2, -np.sqrt(3)/6]))
+        ])
 
-    def plot(self, fig_size: tuple[int, int]=(6, 6)) -> None:
-            plot2D(self.X, fig_size)
-
-    def __len__(self) -> int:
-        return self.size
-
-    def __getitem__(self, index: int) -> np.ndarray:
-        return self.X[index]
-
-
-class Superposition3D:
-
-    def __init__(self, shapes: list[BaseGeometry3D]) -> None:
-        self.shapes = shapes
-        self.X = np.vstack((shape.X for shape in shapes))
-
-    def plot(self, fig_size: tuple[int, int]=(6, 6)) -> None:
-            plot3D(self.X, fig_size)
+    def sample(self, size: int, sigma: float) -> None:
+        self.shape.sample(size, sigma)
+        self.X = self.shape.X
