@@ -90,20 +90,6 @@ class Square(BaseGeometry2D):
         self.X = self.shape.X
 
 
-# class Triangle(BaseGeometry2D):
-
-#     def __init__(self) -> None:
-#         self.shape = Superposition2D([
-#             (Segment(), ScaledTranslation(alpha=1, beta=[-1/2, -1/3])),
-#             (Segment(), Rotation(theta=np.pi/3), ScaledTranslation(alpha=1, beta=[-1/2, -1/3])), 
-#             (Segment(), Rotation(theta=2*np.pi/3), ScaledTranslation(alpha=1, beta=[1/2, -1/3]))
-#         ])
-
-#     def sample(self, size: int, sigma: float) -> None:
-#         self.shape.sample(size, sigma)
-#         self.X = self.shape.X
-
-
 class Triangle(BaseGeometry2D):
 
     def __init__(self) -> None:
@@ -111,6 +97,38 @@ class Triangle(BaseGeometry2D):
             (Segment(), ScaledTranslation(alpha=1, beta=[-1/2, -np.sqrt(3)/6])),
             (Segment(), Rotation(theta=np.pi/3), ScaledTranslation(alpha=1, beta=[-1/2, -np.sqrt(3)/6])), 
             (Segment(), Rotation(theta=2*np.pi/3), ScaledTranslation(alpha=1, beta=[1/2, -np.sqrt(3)/6]))
+        ])
+
+    def sample(self, size: int, sigma: float) -> None:
+        self.shape.sample(size, sigma)
+        self.X = self.shape.X
+
+
+class Triforce(BaseGeometry2D):
+
+    def __init__(self) -> None:
+        self.shape = Superposition2D([
+            (Triangle(), ScaledTranslation(alpha=1, beta=[1/2, np.sqrt(3)/6])),
+            (Triangle(), ScaledTranslation(alpha=1, beta=[0, -np.sqrt(3)/3])),
+            (Triangle(), ScaledTranslation(alpha=1, beta=[1, -np.sqrt(3)/3])),
+        ])
+
+    def sample(self, size: int, sigma: float) -> None:
+        self.shape.sample(size, sigma)
+        self.X = self.shape.X
+
+
+class Stickman(BaseGeometry2D):
+
+    def __init__(self) -> None:
+        phi = (1 + np.sqrt(5))/2
+        self.shape = Superposition2D([
+            (Circle(), ScaledTranslation(alpha=1/4, beta=[0, 1/4])), 
+            (Segment(), Rotation(np.pi/2), ScaledTranslation(alpha=1, beta=[0, -1])), 
+            (Segment(), Rotation(-np.pi/4), ScaledTranslation(alpha=1-1/phi, beta=[0, -(1-1/phi)])), 
+            (Segment(), Rotation(-3*np.pi/4), ScaledTranslation(alpha=1-1/phi, beta=[0, -(1-1/phi)])), 
+            (Segment(), Rotation(-np.pi/4), ScaledTranslation(alpha=1-1/phi, beta=[0, -1])), 
+            (Segment(), Rotation(-3*np.pi/4), ScaledTranslation(alpha=1-1/phi, beta=[0, -1])), 
         ])
 
     def sample(self, size: int, sigma: float) -> None:
