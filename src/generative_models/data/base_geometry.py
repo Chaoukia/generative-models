@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib.axes._axes import Axes
 from torch.utils.data import Dataset
 from data.utils import plot2D, plot3D
 
@@ -42,6 +43,21 @@ class BaseGeometry(Dataset):
         return self.X[index]
 
 
+# class BaseGeometry2D(BaseGeometry):
+#     """
+#     Base class for 2D shapes.
+#     """
+
+#     def __init__(self, *args, **kwargs) -> None:
+#         super().__init__(*args, **kwargs)
+
+#     def plot(self, fig_size: tuple[int, int]=(6, 6)) -> None:
+#         if self.X is None:
+#             raise ValueError("X must not be None. Populate it using sample() method.")
+        
+#         plot2D(self.X, fig_size)
+
+
 class BaseGeometry2D(BaseGeometry):
     """
     Base class for 2D shapes.
@@ -50,8 +66,8 @@ class BaseGeometry2D(BaseGeometry):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def plot(self, fig_size: tuple[int, int]=(6, 6)) -> None:
+    def plot(self, ax: Axes | None = None, fig_size: tuple[int, int]=(6, 6), colour: str | list[str] = "blue") -> Axes:
         if self.X is None:
             raise ValueError("X must not be None. Populate it using sample() method.")
         
-        plot2D(self.X, fig_size)
+        return plot2D(self.X, ax, fig_size, colour)

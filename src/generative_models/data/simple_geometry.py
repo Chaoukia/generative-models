@@ -1,7 +1,9 @@
 import numpy as np
+from matplotlib.axes._axes import Axes
 from scipy.stats import multivariate_normal
 from data.base_geometry import BaseGeometry2D
 from data.transformations import BaseAffineTransformation, ScaledTranslation, Rotation
+from data.utils import plot2D
 from typing import Unpack
 
 
@@ -31,6 +33,17 @@ class Superposition2D(BaseGeometry2D):
         normal = multivariate_normal([0, 0], np.eye(2))
         e = normal.rvs(size)
         self.X += sigma*e
+
+    def plot(self, ax: Axes | None = None, fig_size: tuple[int, int] = (6, 6), colour: str | list[str] = "blue") -> Axes:
+        if type(colour) is str:
+            return super().plot(ax, fig_size, colour)
+
+        quotient, remainder = divmod(self.X.shape[0], self.n_shapes)
+        for i in range(self.n_shapes):
+            shape_size = quotient if i < self.n_shapes-1 else quotient + remainder
+            ax = plot2D(self.X[i*quotient : i*quotient + shape_size, :], ax, fig_size, colour[i])
+
+        return ax
 
 
 class Segment(BaseGeometry2D):
@@ -177,10 +190,10 @@ class PlayStation(BaseGeometry2D):
     def __init__(self) -> None:
         super().__init__()
         self.shape = Superposition2D([
-            (Circle(), ScaledTranslation(alpha=1, beta=[3, 0])), 
-            (Square(), ScaledTranslation(alpha=np.sqrt(np.pi), beta=[-3, 0])), 
-            (Triangle(), ScaledTranslation(alpha=1.75*np.sqrt(np.pi/np.sqrt(3)), beta=[0, 3])), 
-            (Cross(), Rotation(np.pi/4), ScaledTranslation(alpha=1.25, beta=[0, -3])), 
+            (Circle(), ScaledTranslation(alpha=1/4, beta=[3/4, 0])), 
+            (Square(), ScaledTranslation(alpha=np.sqrt(np.pi)/4, beta=[-3/4, 0])), 
+            (Triangle(), ScaledTranslation(alpha=1.75*np.sqrt(np.pi/np.sqrt(3))/4, beta=[0, 3/4])), 
+            (Cross(), Rotation(np.pi/4), ScaledTranslation(alpha=1.25/4, beta=[0, -3/4])), 
         ])
 
     def sample(self, size: int, sigma: float) -> None:
